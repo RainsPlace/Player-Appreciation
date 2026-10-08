@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Player Appreciation — LI Poker Series</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+:root {
+  --purple:#c4b5fd; --purple-light:#ddd6fe; --purple-dim:#7c3aed; --purple-bg:rgba(196,181,253,.09);
+  --silver:#a8b8c8; --bronze:#c47a45;
+  --bg-dark:#060612; --bg-card:#0a0a1a; --bg-panel:#0e0e22;
+  --bg-row:#100e1f; --bg-row-alt:#0c0a1a;
+  --text-main:#e8e0f5; --text-dim:#7a6a90; --text-muted:#3a2a50;
+  --border:#1a1030; --border-purple:#2d1a6e;
+  --accent-wbo:#7c3aed; --accent-nlhe:#2d8a4e; --accent-nlohl:#c47a45;
+  --accent-mg:#1a7ab8; --accent-se:#b84040;
+  --red:#c44a4a;
+  --sb-w:210px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{background:#060612;}
+body{background:transparent;color:var(--text-main);font-family:'Crimson Pro',Georgia,serif;min-height:100vh;overflow-x:hidden;}
+
+/* LOADING */
+#loadingScreen{position:fixed;inset:0;background:rgba(4,2,16,.93);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;z-index:999;transition:opacity .4s;}
+#loadingScreen.hidden{opacity:0;pointer-events:none;}
+.loading-title{font-family:'Cinzel',serif;font-size:clamp(1.4rem,4vw,2.4rem);font-weight:900;color:var(--purple);letter-spacing:.14em;text-shadow:0 0 40px rgba(196,181,253,.5);}
+.loading-sub{font-size:.9rem;color:var(--text-dim);letter-spacing:.4em;font-style:italic;}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--purple);border-radius:50%;animation:spin .8s linear infinite;}
+.loading-msg{font-size:.85rem;color:var(--text-dim);font-style:italic;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* PAGE FOOTER */
+#page-footer{text-align:center;padding:14px 16px 18px;font-size:.75rem;color:var(--text-muted);border-top:1px solid var(--border);font-family:'Cinzel',serif;letter-spacing:.12em;position:relative;z-index:1;}
+#pvCount{color:var(--purple-dim);font-weight:600;}
+
+/* ERROR */
+#errorScreen{display:none;position:fixed;inset:0;background:rgba(4,2,16,.93);align-items:center;justify-content:center;flex-direction:column;gap:16px;z-index:998;padding:24px;text-align:center;}
+#errorScreen.visible{display:flex;}
+.error-icon{font-size:2.5rem;}.error-title{font-family:'Cinzel',serif;color:var(--red);font-size:1.1rem;letter-spacing:.1em;}
+.error-msg{color:var(--text-dim);font-size:.9rem;max-width:480px;line-height:1.7;}
+
+/* HEADER */
+header{padding:16px 24px 12px;position:relative;background:linear-gradient(180deg,rgba(4,2,16,.92) 0%,rgba(6,4,20,.84) 100%);border-bottom:2px solid var(--border-purple);backdrop-filter:blur(4px);}
+.rune-border{position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,transparent,var(--purple-dim),var(--purple),var(--purple-dim),transparent);}
+.header-top{display:flex;align-items:center;justify-content:space-between;gap:16px;}
+.header-center{flex:1;min-width:0;text-align:center;}
+header h1{font-family:'Cinzel',serif;font-size:clamp(1.4rem,4vw,2.8rem);font-weight:900;letter-spacing:.14em;color:var(--purple);text-shadow:0 0 50px rgba(196,181,253,.5),0 2px 4px rgba(0,0,0,.8);}
+header h2{font-family:'Cinzel',serif;font-size:clamp(.7rem,1.8vw,.9rem);font-weight:400;letter-spacing:.32em;color:var(--text-dim);margin-top:6px;}
+.header-ornament{font-size:.95rem;color:var(--purple-dim);letter-spacing:.5em;margin:6px 0 0;}
+.header-suit{font-size:clamp(1.8rem,5vw,3.8rem);color:var(--purple-dim);opacity:.5;flex-shrink:0;line-height:1;}
+@media(max-width:600px){.header-suit{display:none;}}
+.header-tools{display:flex;align-items:center;justify-content:center;gap:8px;padding-top:10px;flex-wrap:wrap;}
+.updated-time{font-size:.78rem;color:var(--text-muted);text-align:center;margin-top:4px;font-style:italic;}
+.hdr-btn{font-family:'Cinzel',serif;font-size:.7rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;padding:6px 16px;cursor:pointer;border:1px solid var(--border);border-radius:50px;background:transparent;color:var(--text-dim);transition:all .2s;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.hdr-btn:hover{color:var(--purple-dim);border-color:var(--purple-dim);background:var(--purple-bg);}
+.hdr-btn.copy-btn{border-color:var(--purple-dim);color:var(--purple-dim);}
+.hdr-btn.copy-btn:hover,.hdr-btn.copy-btn.flash{color:var(--purple-light);border-color:var(--purple);background:rgba(196,181,253,.15);}
+.hdr-btn.spinning .ri{animation:spin .6s linear infinite;display:inline-block;}
+
+/* APP BODY */
+.app-body{display:flex;min-height:calc(100vh - 140px);}
+
+/* SIDEBAR */
+.sidebar{width:var(--sb-w);flex-shrink:0;background:rgba(6,4,20,.9);border-right:1px solid var(--border-purple);display:flex;flex-direction:column;position:sticky;top:0;height:calc(100vh - 140px);overflow-y:auto;backdrop-filter:blur(6px);}
+.sb-nav{padding:10px 8px;}
+.sb-btn{width:100%;text-align:left;display:flex;align-items:center;gap:7px;padding:9px 11px;border:none;border-radius:6px;background:transparent;color:var(--text-dim);font-family:'Cinzel',serif;font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .18s;margin-bottom:2px;white-space:nowrap;}
+.sb-btn:hover{color:var(--purple-dim);background:rgba(196,181,253,.06);}
+.sb-btn.active{color:var(--purple);background:var(--purple-bg);box-shadow:inset 2px 0 0 var(--purple);}
+.sb-divider{height:1px;background:var(--border-purple);margin:8px 8px;}
+
+/* MAIN CONTENT */
+.main-content{flex:1;min-width:0;overflow:hidden;}
+
+/* QUARTER CONTROLS */
+.controls{display:flex;align-items:center;justify-content:center;gap:18px;padding:14px 20px;background:var(--bg-card);border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.control-label{font-family:'Cinzel',serif;font-size:.7rem;font-weight:600;letter-spacing:.2em;color:var(--text-dim);text-transform:uppercase;}
+select{background:var(--bg-panel);color:var(--purple);border:1px solid var(--border-purple);border-radius:4px;padding:8px 32px 8px 12px;font-family:'Cinzel',serif;font-size:.85rem;font-weight:600;cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='9' viewBox='0 0 12 9'%3E%3Cpath d='M0 0h12L6 9z' fill='%237c3aed'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;min-width:140px;}
+select:focus{border-color:var(--purple);}
+.best-n-badge{background:var(--border-purple);color:var(--purple-light);font-family:'Cinzel',serif;font-size:.66rem;font-weight:700;letter-spacing:.14em;padding:4px 11px;border-radius:20px;border:1px solid var(--purple-dim);}
+
+/* RESULTS CARD */
+#resultsCard{max-width:820px;margin:20px auto;border:1px solid var(--border-purple);border-radius:8px;overflow:hidden;background:var(--bg-dark);}
+.results-stats{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--border-purple);background:var(--bg-dark);}
+.rsc{text-align:center;padding:9px 8px;border-right:1px solid var(--border);}
+.rsc:last-child{border-right:none;}
+.rsc-icon{font-size:.95rem;margin-bottom:2px;opacity:.8;}
+.rsc-label{font-family:'Cinzel',serif;font-size:.52rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--text-muted);margin-bottom:3px;}
+.rsc-val{font-family:'Cinzel',serif;font-size:1.05rem;font-weight:900;color:var(--purple);line-height:1.1;}
+.rsc-sub{font-size:.7rem;color:var(--text-dim);margin-top:1px;}
+.results-top-label{font-family:'Cinzel',serif;font-size:.76rem;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:var(--purple-dim);text-align:center;padding:18px 0 0;}
+.results-podium-bg{background:linear-gradient(180deg,#020010 0%,var(--bg-panel) 100%);border-bottom:1px solid var(--border);padding:4px 20px 18px;}
+.results-table-bg{background:var(--bg-panel);}
+.rt-table{width:100%;border-collapse:collapse;}
+.rt-table th{font-family:'Cinzel',serif;font-size:.68rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;padding:10px 14px;background:var(--bg-dark);color:var(--text-dim);border-bottom:1px solid var(--border-purple);text-align:left;}
+.rt-table th:nth-child(3),.rt-table th:nth-child(4){text-align:right;}
+.rt-table td{padding:9px 14px;border-bottom:1px solid var(--border);font-size:.95rem;vertical-align:middle;}
+.rt-table tr:hover td{background:rgba(196,181,253,.04);}
+.rt-rank{font-family:'Cinzel',serif;font-size:.88rem;font-weight:700;color:var(--text-muted);width:46px;}
+.rt-name{font-size:1rem;font-weight:600;}
+.rt-pts{font-family:'Cinzel',serif;font-size:.9rem;font-weight:700;color:var(--purple-light);text-align:right;}
+.rt-chips{font-size:.8rem;color:var(--text-dim);text-align:right;}
+.itm-badge{display:inline-block;padding:1px 6px;border-radius:10px;font-size:.64rem;font-weight:700;background:rgba(124,58,237,.18);color:var(--purple-dim);border:1px solid rgba(124,58,237,.35);margin-left:5px;}
+.results-empty{text-align:center;padding:60px 20px;color:var(--text-muted);font-style:italic;}
+#resultsBody{max-width:540px;margin:16px auto 36px;border:1px solid var(--border-purple);border-radius:8px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.6);}
+
+/* 3+ PANEL LEADERBOARD */
+.panels-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0;margin:18px 14px 36px;border:1px solid var(--border-purple);border-radius:8px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.6);}
+.panel{background:var(--bg-panel);display:flex;flex-direction:column;border-right:1px solid var(--border);min-width:0;}
+.panel:last-child{border-right:none;}
+.panel-header{display:flex;align-items:center;justify-content:center;position:relative;padding:14px 14px 11px;background:var(--bg-dark);border-bottom:2px solid var(--border-purple);flex-shrink:0;}
+.panel-title{font-family:'Cinzel',serif;font-size:1rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;text-align:center;}
+.panel-dot{width:7px;height:7px;border-radius:50%;position:absolute;right:14px;top:50%;transform:translateY(-50%);}
+.panel-combined .panel-title{color:var(--purple);}
+.panel-combined .panel-dot{background:var(--purple);box-shadow:0 0 6px var(--purple);}
+.panel-wbo .panel-title{color:var(--accent-wbo);}.panel-wbo .panel-dot{background:var(--accent-wbo);box-shadow:0 0 6px var(--accent-wbo);}
+.panel-nlhe .panel-title{color:var(--accent-nlhe);}.panel-nlhe .panel-dot{background:var(--accent-nlhe);box-shadow:0 0 6px var(--accent-nlhe);}
+.panel-nlohl .panel-title{color:var(--accent-nlohl);}.panel-nlohl .panel-dot{background:var(--accent-nlohl);box-shadow:0 0 6px var(--accent-nlohl);}
+.panel-mg .panel-title{color:var(--accent-mg);}.panel-mg .panel-dot{background:var(--accent-mg);box-shadow:0 0 6px var(--accent-mg);}
+.panel-se .panel-title{color:var(--accent-se);}.panel-se .panel-dot{background:var(--accent-se);box-shadow:0 0 6px var(--accent-se);}
+.panel-list{flex:1;overflow-y:auto;max-height:380px;}
+.panel-row{display:grid;grid-template-columns:32px 1fr auto;align-items:center;gap:6px;padding:7px 10px;border-bottom:1px solid var(--border);transition:background .15s;}
+.panel-row:hover{background:rgba(196,181,253,.04);}
+.pr-rank{font-family:'Cinzel',serif;font-size:.82rem;font-weight:700;color:var(--text-muted);text-align:center;}
+.pr-name{font-size:.9rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pr-pts{font-family:'Cinzel',serif;font-size:.85rem;color:var(--purple-light);font-weight:700;text-align:right;white-space:nowrap;}
+@media(max-width:900px){.panels-row{grid-template-columns:1fr 1fr;}.panel{border-right:1px solid var(--border)!important;border-bottom:1px solid var(--border-purple);}}
+@media(max-width:550px){.panels-row{grid-template-columns:1fr;}}
+
+/* SINGLE-PANEL (game-specific tabs) */
+.single-panel{margin:18px auto 36px;max-width:540px;border:1px solid var(--border-purple);border-radius:8px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.6);}
+.sp-header{padding:18px 22px;background:var(--bg-dark);border-bottom:2px solid var(--border-purple);text-align:center;}
+.sp-title{font-family:'Cinzel',serif;font-size:1.5rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;}
+.sp-sub{font-size:.82rem;color:var(--text-dim);margin-top:5px;font-style:italic;}
+.sp-qlabel{font-family:'Cinzel',serif;font-size:.72rem;font-weight:700;letter-spacing:.2em;color:var(--purple-dim);margin-top:8px;}
+.sp-table{width:100%;border-collapse:collapse;background:var(--bg-panel);}
+.sp-table th{font-family:'Cinzel',serif;font-size:.68rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;padding:10px 13px;background:var(--bg-dark);color:var(--text-dim);border-bottom:1px solid var(--border-purple);text-align:left;}
+.sp-table th:last-child{text-align:right;}
+.sp-table td{padding:9px 13px;border-bottom:1px solid var(--border);font-size:.93rem;}
+.sp-table tr:nth-child(even) td{background:var(--bg-row-alt);}
+.sp-table tr:hover td{background:rgba(196,181,253,.04);}
+.sp-table td:first-child{font-family:'Cinzel',serif;font-size:.85rem;font-weight:700;color:var(--text-muted);}
+.sp-table td:last-child{text-align:right;font-family:'Cinzel',serif;font-size:.9rem;font-weight:700;color:var(--purple-light);}
+.rank-1{color:var(--purple)!important;}.rank-2{color:var(--silver)!important;}.rank-3{color:var(--bronze)!important;}
+
+/* BOUNTY BADGE */
+.bounty-badge{display:inline-block;padding:1px 7px;border-radius:10px;font-size:.7rem;font-weight:700;background:rgba(124,58,237,.18);color:var(--accent-wbo);border:1px solid rgba(124,58,237,.35);margin-left:6px;}
+
+/* CHAMPIONS */
+.champ-section{margin:18px 14px 0;}
+.champ-title{font-family:'Cinzel',serif;font-size:1rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--purple);padding:14px 0 8px;border-bottom:1px solid var(--border-purple);margin-bottom:14px;}
+.champ-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-bottom:28px;}
+.champ-card{background:var(--bg-card);border:1px solid var(--border-purple);border-radius:8px;overflow:hidden;}
+.champ-card-header{padding:10px 14px;background:var(--bg-dark);border-bottom:1px solid var(--border);}
+.champ-card-quarter{font-family:'Cinzel',serif;font-size:.68rem;letter-spacing:.2em;color:var(--text-dim);}
+.champ-card-cat{font-family:'Cinzel',serif;font-size:.95rem;font-weight:700;color:var(--purple);letter-spacing:.1em;}
+.champ-card-body{padding:12px 14px;display:flex;align-items:center;gap:10px;}
+.champ-avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:1.15rem;font-weight:900;border:2px solid var(--purple-dim);background:rgba(124,58,237,.12);color:var(--purple);flex-shrink:0;}
+.champ-name{font-family:'Cinzel',serif;font-size:1.05rem;font-weight:700;color:var(--text-main);letter-spacing:.06em;}
+.champ-count-table{width:100%;border-collapse:collapse;background:var(--bg-panel);border:1px solid var(--border-purple);border-radius:8px;overflow:hidden;margin-bottom:28px;}
+.champ-count-table th{font-family:'Cinzel',serif;font-size:.66rem;font-weight:700;letter-spacing:.17em;text-transform:uppercase;padding:9px 13px;background:var(--bg-dark);color:var(--text-dim);border-bottom:1px solid var(--border-purple);text-align:left;}
+.champ-count-table th:not(:first-child){text-align:center;}
+.champ-count-table td{padding:8px 13px;border-bottom:1px solid var(--border);font-size:.93rem;}
+.champ-count-table td:not(:first-child){text-align:center;font-family:'Cinzel',serif;font-weight:700;color:var(--purple-light);}
+.champ-count-table tr:nth-child(even) td{background:var(--bg-row-alt);}
+
+/* CALENDAR */
+.cal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin:18px 14px 36px;}
+.cal-card{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:14px;transition:border-color .2s,box-shadow .2s;}
+.cal-card:hover{border-color:var(--purple-dim);box-shadow:0 4px 20px rgba(124,58,237,.12);}
+.cal-card.next-game{border-color:var(--purple);box-shadow:0 0 20px rgba(124,58,237,.2);}
+.cal-next-badge{display:inline-block;background:var(--purple-dim);color:#fff;font-family:'Cinzel',serif;font-size:.62rem;font-weight:900;letter-spacing:.14em;padding:3px 10px;border-radius:12px;margin-bottom:8px;}
+.cal-name{font-family:'Cinzel',serif;font-size:1rem;font-weight:700;color:var(--purple);margin-bottom:3px;letter-spacing:.07em;}
+.cal-date{font-size:.88rem;color:var(--text-dim);margin-bottom:5px;}
+.cal-game{font-size:.8rem;color:var(--text-muted);}
+.cal-link{display:inline-block;margin-top:8px;font-family:'Cinzel',serif;font-size:.7rem;font-weight:700;letter-spacing:.14em;color:var(--accent-nlhe);text-decoration:none;border:1px solid var(--accent-nlhe);border-radius:20px;padding:4px 13px;transition:all .2s;}
+.cal-link:hover{background:rgba(45,138,78,.12);}
+.cal-status{display:inline-block;font-size:.7rem;padding:2px 7px;border-radius:10px;margin-left:5px;}
+.cal-status.registering{background:rgba(45,138,78,.18);color:var(--accent-nlhe);}
+.cal-status.announced{background:rgba(124,58,237,.12);color:var(--purple-dim);}
+
+/* LEAGUES INFO */
+.li-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;margin:18px 14px 36px;}
+.li-card{background:var(--bg-card);border:1px solid var(--border-purple);border-radius:8px;overflow:hidden;}
+.li-card-header{padding:12px 16px;background:var(--bg-dark);border-bottom:1px solid var(--border);}
+.li-card-name{font-family:'Cinzel',serif;font-size:1.05rem;font-weight:700;color:var(--purple);letter-spacing:.1em;}
+.li-card-body{padding:12px 16px;font-size:.88rem;line-height:1.6;color:var(--text-dim);}
+.li-card-link{display:inline-block;margin-top:8px;font-family:'Cinzel',serif;font-size:.68rem;font-weight:700;letter-spacing:.12em;color:var(--purple);text-decoration:none;border:1px solid var(--border-purple);border-radius:14px;padding:4px 11px;transition:all .2s;}
+.li-card-link:hover{border-color:var(--purple);background:var(--purple-bg);}
+
+/* MISC */
+.empty-msg{text-align:center;padding:36px 20px;color:var(--text-muted);font-style:italic;font-size:.93rem;}
+@media(max-width:768px){.sidebar{display:none;}.results-stats{grid-template-columns:repeat(2,1fr);}}
+</style>
+</head>
+<body>
+
+<div id="loadingScreen">
+  <div class="loading-title">🎴 PLAYER APPRECIATION 🎴</div>
+  <div class="loading-sub">LEAGUES INVITATIONAL</div>
+  <div class="spinner"></div>
+  <div class="loading-msg" id="loadingMsg">Loading standings…</div>
+</div>
+
+<div id="errorScreen">
+  <div class="error-icon">⚠</div>
+  <div class="error-title">UNABLE TO LOAD DATA</div>
+  <div class="error-msg" id="errorMsg">Could not connect to the leaderboard data source.</div>
+</div>
+
+<div id="app" style="display:none;">
+<header>
+  <div class="rune-border"></div>
+  <div class="header-top">
+    <div class="header-suit">🎴</div>
+    <div class="header-center">
+      <h1>PLAYER APPRECIATION</h1>
+      <h2>LEAGUES INVITATIONAL</h2>
+      <div class="header-ornament">✦ ✦ ✦</div>
+    </div>
+    <div class="header-suit">🎴</div>
+  </div>
+  <div class="header-tools">
+    <button class="hdr-btn copy-btn" onclick="copyData()">📋 COPY DATA</button>
+    <button class="hdr-btn copy-btn" onclick="copyImage()">📷 COPY IMAGE</button>
+  </div>
+  <div class="updated-time" id="updatedTime"></div>
+</header>
+
+<div class="app-body">
+  <aside class="sidebar">
+    <nav class="sb-nav">
+      <button class="sb-btn active" data-tab="results"    onclick="switchTab('results')">    🏅 Latest Results</button>
+      <button class="sb-btn"        data-tab="leaderboard" onclick="switchTab('leaderboard')">🏆 Leaderboard</button>
+      <div class="sb-divider"></div>
+      <button class="sb-btn"        data-tab="wbo"         onclick="switchTab('wbo')">        🎰 Whit's Bounty Open</button>
+      <button class="sb-btn"        data-tab="nlhe"        onclick="switchTab('nlhe')">       🃏 NLHE Monthly</button>
+      <button class="sb-btn"        data-tab="nlohl"       onclick="switchTab('nlohl')">      ♣ Omaha Monthly</button>
+      <button class="sb-btn"        data-tab="mg"          onclick="switchTab('mg')">         🌙 Midnight Grind</button>
+      <button class="sb-btn"        data-tab="se"          onclick="switchTab('se')">         ✨ Special Events</button>
+      <div class="sb-divider"></div>
+      <button class="sb-btn"        data-tab="champions"   onclick="switchTab('champions')">  👑 Champions</button>
+      <button class="sb-btn"        data-tab="calendar"    onclick="switchTab('calendar')">   📅 Calendar</button>
+      <button class="sb-btn"        data-tab="leagueinfo"  onclick="switchTab('leagueinfo')"> 🗺 Leagues Info</button>
+    </nav>
+  </aside>
+
+  <main class="main-content">
+    <!-- RESULTS TAB -->
+    <div id="tab-results">
+      <div id="resultsCard">
+        <div class="results-stats" id="resultsStats"></div>
+        <div class="results-podium-bg" id="resultsPodium"></div>
+        <div class="results-table-bg">
+          <div id="resultsBody"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEADERBOARD TAB -->
+    <div id="tab-leaderboard" style="display:none;">
+      <div class="controls">
+        <span class="control-label">Quarter</span>
+        <select id="lbQuarterSelect" onchange="renderLeaderboard()"></select>
+        <span class="best-n-badge">Best 9 per game</span>
+      </div>
+      <div id="lbPanels"></div>
+    </div>
+
+    <!-- GAME TABS -->
+    <div id="tab-wbo"   style="display:none;"></div>
+    <div id="tab-nlhe"  style="display:none;"></div>
+    <div id="tab-nlohl" style="display:none;"></div>
+    <div id="tab-mg"    style="display:none;"></div>
+    <div id="tab-se"    style="display:none;"></div>
+
+    <!-- CHAMPIONS TAB -->
+    <div id="tab-champions" style="display:none;"></div>
+
+    <!-- CALENDAR TAB -->
+    <div id="tab-calendar" style="display:none;">
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+
+    <!-- LEAGUES INFO TAB -->
+    <div id="tab-leagueinfo" style="display:none;">
+      <div class="li-grid">
+        <div class="li-card"><div class="li-card-header"><div class="li-card-name">Nordic Warriors</div></div><div class="li-card-body">A competitive NL Hold'em league with a fierce Nordic spirit. Weekly battles for leaderboard supremacy.<br><a class="li-card-link" href="https://www.casino.org/replaypoker/leagues/67" target="_blank">View League</a></div></div>
+        <div class="li-card"><div class="li-card-header"><div class="li-card-name">Leagues Invitational</div></div><div class="li-card-body">The premier invite-only league featuring multiple game formats including NL Hold'em, Omaha, and special events.<br><a class="li-card-link" href="https://www.casino.org/replaypoker/leagues/77" target="_blank">View League</a></div></div>
+        <div class="li-card"><div class="li-card-header"><div class="li-card-name">Midnight Grind</div></div><div class="li-card-body">Late-night action for the dedicated grinders. Tournaments that run deep into the night.<br><a class="li-card-link" href="#" target="_blank">View League</a></div></div>
+        <div class="li-card"><div class="li-card-header"><div class="li-card-name">Wildhorses</div></div><div class="li-card-body">A wild and unpredictable league where anything can happen at the felt.<br><a class="li-card-link" href="https://www.casino.org/replaypoker/leagues/58" target="_blank">View League</a></div></div>
+        <div class="li-card"><div class="li-card-header"><div class="li-card-name">Orion's Belt</div></div><div class="li-card-body">Three-division league tracking the stars of Alnitak, Alnilam, and Mintaka.<br><a class="li-card-link" href="#" target="_blank">View League</a></div></div>
+        <div class="li-card"><div class="li-card-header"><div class="li-card-name">Early Birds</div></div><div class="li-card-body">Morning tournaments for the early risers. Rise and grind at the poker tables.<br><a class="li-card-link" href="https://www.casino.org/replaypoker/leagues/65" target="_blank">View League</a></div></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<footer id="page-footer">
+  <span id="pvCount"></span>
+  <span id="footerUpdated"></span>
+</footer>
+</div><!-- #app -->
+
+<script>
+// ── WEBAPP URL for GitHub Pages shim ──────────────────────────
+var WEBAPP_URL = '';  // set this after deploying, e.g. 'https://script.google.com/macros/s/AKfycb.../exec'
+
+// ── STATE ─────────────────────────────────────────────────────
+var primaryData   = null;
+var champData     = null;
+var currentTab    = 'results';
+var champsLoaded  = false;
+
+var GAME_CONFIG = {
+  wbo:   { name: "Whit's Bounty Open",   abbr: 'WBO',   accent: 'var(--accent-wbo)',  hasBounty: true  },
+  nlhe:  { name: 'LI Open NLHE Monthly', abbr: 'NLHE',  accent: 'var(--accent-nlhe)', hasBounty: false },
+  nlohl: { name: 'LI Open NLOHL Monthly',abbr: 'NLOHL', accent: 'var(--accent-nlohl)',hasBounty: false },
+  mg:    { name: 'Midnight Grind',        abbr: 'MG',    accent: 'var(--accent-mg)',   hasBounty: false },
+  se:    { name: 'Special Events',        abbr: 'SE',    accent: 'var(--accent-se)',   hasBounty: false }
+};
+var GAME_KEYS = ['wbo','nlhe','nlohl','mg','se'];
+
+// ── INIT ──────────────────────────────────────────────────────
+window.onload = function() {
+  setLoadMsg('Connecting to leaderboard…');
+  google.script.run
+    .withSuccessHandler(function(data) {
+      primaryData = data;
+      init();
+    })
+    .withFailureHandler(function(err) {
+      showError('Failed to load data: ' + (err.message || String(err)));
+    })
+    .paGetPrimary();
+};
+
+function init() {
+  if (!primaryData || !primaryData.quarters) {
+    showError('No leaderboard data returned.');
+    return;
+  }
+  populateQuarterSelect('lbQuarterSelect', primaryData.quarters);
+  renderResults();
+  renderLeaderboard();
+  renderCalendar();
+  if (primaryData.updated) {
+    document.getElementById('updatedTime').textContent = 'Updated: ' + fmtDatetime(primaryData.updated);
+    document.getElementById('footerUpdated').textContent = ' · ' + fmtDatetime(primaryData.updated);
+  }
+  document.getElementById('loadingScreen').classList.add('hidden');
+  document.getElementById('app').style.display = '';
+  trackPageView();
+}
+
+function trackPageView() {
+  google.script.run.withSuccessHandler(function(r) {
+    if (r && r.count) document.getElementById('pvCount').textContent = '👁 ' + r.count.toLocaleString() + ' views';
+  }).paGetPrimary(); // reuse connection; separate ?get=pageview fetch is handled in doGet
+}
+
+// ── TAB SWITCHING ─────────────────────────────────────────────
+var captureTargets = {
+  results: '#resultsCard', leaderboard: '#lbPanels',
+  wbo: '#tab-wbo', nlhe: '#tab-nlhe', nlohl: '#tab-nlohl', mg: '#tab-mg', se: '#tab-se',
+  champions: '#tab-champions', calendar: '#tab-calendar', leagueinfo: '#tab-leagueinfo'
+};
+
+function switchTab(name) {
+  currentTab = name;
+  var tabs = ['results','leaderboard','wbo','nlhe','nlohl','mg','se','champions','calendar','leagueinfo'];
+  tabs.forEach(function(t) {
+    document.getElementById('tab-' + t).style.display = (t === name) ? '' : 'none';
+  });
+  document.querySelectorAll('.sb-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.tab === name);
+  });
+
+  if (name === 'champions' && !champsLoaded) loadChampions();
+
+  // Render game tab on first open
+  if (GAME_KEYS.indexOf(name) !== -1) renderGameTab(name);
+}
+
+// ── LATEST RESULTS ────────────────────────────────────────────
+function renderResults() {
+  var lg = primaryData.latestGame;
+  if (!lg || !lg.players || !lg.players.length) {
+    document.getElementById('resultsCard').innerHTML = '<div class="results-empty">No results yet.</div>';
+    return;
+  }
+
+  var fmtN = function(n) { return Number(n || 0).toLocaleString(); };
+  var gc   = GAME_CONFIG[gameNameToKey(lg.gameName)] || {};
+
+  // Stat cards
+  document.getElementById('resultsStats').innerHTML =
+    statCard('📅', 'Date',     lg.date || '—',       '') +
+    statCard('🎴', 'Game',     lg.gameName || '—',   '') +
+    statCard('👥', 'Players',  lg.numPlayers || 0,   'in the field') +
+    statCard('💰', 'ITM',      lg.itmCount   || 0,   'players paid');
+
+  // Podium (top 3)
+  var top3 = lg.players.slice(0, 3);
+  var podiumHtml = '<div class="results-top-label">TOP FINISHERS</div><div class="results-podium-bg">';
+  var crowns = ['♛','♚','♛']; var order = [1, 0, 2];
+  // Reorder: 2nd | 1st | 3rd
+  [1, 0, 2].forEach(function(idx) {
+    var p = top3[idx];
+    if (!p) return;
+    var initials = initFrom(p.player);
+    podiumHtml += '<div style="display:inline-flex;flex-direction:column;align-items:center;gap:6px;margin:14px 10px 0;vertical-align:bottom;">' +
+      (idx === 0 ? '<div style="font-size:1.5rem;color:var(--purple);">♛</div>' : '') +
+      '<div style="width:' + (idx===0?'70px':'52px') + ';height:' + (idx===0?'70px':'52px') + ';border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:Cinzel,serif;font-weight:900;font-size:' + (idx===0?'1.5rem':'1.1rem') + ';border:2px solid ' + (idx===0?'var(--purple)':idx===1?'var(--silver)':'var(--bronze)') + ';background:rgba(196,181,253,.1);color:' + (idx===0?'var(--purple)':idx===1?'var(--silver)':'var(--bronze)') + ';">' + initials + '</div>' +
+      '<div style="font-family:Cinzel,serif;font-size:.72rem;font-weight:700;text-align:center;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(p.player) + '</div>' +
+      '<div style="font-size:.75rem;color:var(--purple-dim);">' + fmtN(p.points) + ' pts</div>' +
+      '</div>';
+  });
+  podiumHtml += '</div>';
+  document.getElementById('resultsPodium').innerHTML = podiumHtml;
+
+  // Full table
+  var rows = lg.players.map(function(p, i) {
+    var rank   = i + 1;
+    var rCls   = rank <= 3 ? ' rank-' + rank : '';
+    var lobbyLink = p.url ? '<a href="' + esc(p.url) + '" target="_blank" style="font-size:.7rem;color:var(--purple-dim);text-decoration:none;margin-left:6px;">⧉</a>' : '';
+    var bountyStr = (p.bounty && p.bounty > 0) ? '<span class="bounty-badge">+' + fmtN(p.bounty) + ' bounty</span>' : '';
+    var chipsStr  = p.chips > 0 ? fmtN(p.chips) + ' chips' : '';
+    return '<tr><td class="rt-rank' + rCls + '">' + rank + '</td>' +
+      '<td class="rt-name">' + esc(p.player) + lobbyLink + bountyStr + '</td>' +
+      '<td class="rt-pts">' + fmtN(p.points) + '</td>' +
+      '<td class="rt-chips">' + chipsStr + '</td></tr>';
+  }).join('');
+
+  document.getElementById('resultsBody').innerHTML =
+    '<table class="rt-table"><thead><tr>' +
+    '<th class="rt-rank">Rank</th><th>Player</th><th style="text-align:right;">Points</th><th style="text-align:right;">Chips</th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table>';
+}
+
+// ── LEADERBOARD ───────────────────────────────────────────────
+function renderLeaderboard() {
+  var qSel = document.getElementById('lbQuarterSelect');
+  var q    = qSel ? qSel.value : (primaryData.quarters[0] || '');
+  var qd   = (primaryData.data || {})[q] || {};
+  var fmtN = function(n) { return Number(n || 0).toLocaleString(); };
+
+  var panelOrder = [
+    { key: 'combined', label: 'COMBINED',          cls: 'panel-combined' },
+    { key: 'wbo',      label: "WHIT'S BOUNTY",      cls: 'panel-wbo'     },
+    { key: 'nlhe',     label: 'NLHE MONTHLY',       cls: 'panel-nlhe'    },
+    { key: 'nlohl',    label: 'OMAHA MONTHLY',      cls: 'panel-nlohl'   },
+    { key: 'mg',       label: 'MIDNIGHT GRIND',     cls: 'panel-mg'      },
+    { key: 'se',       label: 'SPECIAL EVENTS',     cls: 'panel-se'      }
+  ];
+
+  var html = '<div class="panels-row">';
+  panelOrder.forEach(function(pc) {
+    var board = qd[pc.key] || [];
+    html += '<div class="panel ' + pc.cls + '">';
+    html += '<div class="panel-header"><div class="panel-title">' + pc.label + '</div><div class="panel-dot"></div></div>';
+    html += '<div class="panel-list">';
+    if (!board.length) {
+      html += '<div class="empty-msg">No data</div>';
+    } else {
+      board.forEach(function(p, i) {
+        var rCls = i < 3 ? ' rank-' + (i+1) : '';
+        var sub  = (pc.key === 'combined' && p.wbo_pts) ? fmtN(p.wbo_pts) + ' WBO' : (p.games ? p.games + ' games' : '');
+        html += '<div class="panel-row">' +
+          '<div class="pr-rank' + rCls + '">' + (i+1) + '</div>' +
+          '<div><div class="pr-name">' + esc(p.player) + '</div>' +
+          (sub ? '<div class="pr-sub">' + sub + '</div>' : '') +
+          '</div>' +
+          '<div class="pr-pts">' + fmtN(p.points || p.total_pts) + '</div>' +
+          '</div>';
+      });
+    }
+    html += '</div></div>';
+  });
+  html += '</div>';
+  document.getElementById('lbPanels').innerHTML = html;
+}
+
+// ── GAME TABS ─────────────────────────────────────────────────
+var gameTabRendered = {};
+
+function renderGameTab(key) {
+  if (gameTabRendered[key]) return;
+  gameTabRendered[key] = true;
+
+  var gc  = GAME_CONFIG[key] || {};
+  var el  = document.getElementById('tab-' + key);
+  var fmtN = function(n) { return Number(n || 0).toLocaleString(); };
+
+  var quartersWithData = (primaryData.quarters || []).filter(function(q) {
+    return ((primaryData.data || {})[q] || {})[key];
+  });
+
+  if (!quartersWithData.length) {
+    el.innerHTML = '<div class="empty-msg" style="padding:60px;">No ' + esc(gc.name) + ' data yet.</div>';
+    return;
+  }
+
+  // Quarter selector
+  var selId = 'gameSelect_' + key;
+  var html = '<div class="controls"><span class="control-label">Quarter</span>' +
+    '<select id="' + selId + '" onchange="renderSingleGame(\'' + key + '\')">';
+  quartersWithData.forEach(function(q) { html += '<option value="' + esc(q) + '">' + esc(q) + '</option>'; });
+  html += '</select><span class="best-n-badge">Best 9</span></div>';
+  html += '<div id="gamePanel_' + key + '"></div>';
+  el.innerHTML = html;
+
+  renderSingleGame(key);
+}
+
+function renderSingleGame(key) {
+  var gc   = GAME_CONFIG[key] || {};
+  var selEl = document.getElementById('gameSelect_' + key);
+  var q    = selEl ? selEl.value : (primaryData.quarters[0] || '');
+  var board = ((primaryData.data || {})[q] || {})[key] || [];
+  var el   = document.getElementById('gamePanel_' + key);
+  if (!el) return;
+  var fmtN = function(n) { return Number(n || 0).toLocaleString(); };
+
+  var rows = board.map(function(p, i) {
+    var rank = i + 1;
+    var rCls = rank <= 3 ? ' rank-' + rank : '';
+    return '<tr><td class="' + rCls + '" style="font-family:Cinzel,serif;font-weight:700;color:var(--text-muted);">' + rank + '</td>' +
+      '<td>' + esc(p.player) + '</td>' +
+      '<td>' + (p.games || 0) + '</td>' +
+      '<td>' + fmtN(p.points) + '</td>' +
+      '</tr>';
+  }).join('');
+
+  el.innerHTML = '<div class="single-panel" id="gamePanel_inner_' + key + '">' +
+    '<div class="sp-header">' +
+    '<div class="sp-title" style="color:' + (gc.accent || 'var(--purple)') + ';">' + esc(gc.name) + '</div>' +
+    '<div class="sp-qlabel">' + esc(q) + '</div>' +
+    '</div>' +
+    (rows ? '<table class="sp-table"><thead><tr><th>Rank</th><th>Player</th><th>Games</th><th style="text-align:right;">Best 9 Pts</th></tr></thead><tbody>' + rows + '</tbody></table>' :
+     '<div class="empty-msg">No data for ' + esc(q) + '.</div>') +
+    '</div>';
+}
+
+// ── CHAMPIONS ─────────────────────────────────────────────────
+function loadChampions() {
+  champsLoaded = true;
+  document.getElementById('tab-champions').innerHTML = '<div class="empty-msg">Loading champions…</div>';
+  google.script.run
+    .withSuccessHandler(function(data) {
+      champData = data;
+      renderChampions();
+    })
+    .withFailureHandler(function() {
+      document.getElementById('tab-champions').innerHTML = '<div class="empty-msg">Could not load champions data.</div>';
+    })
+    .paGetChampions();
+}
+
+function renderChampions() {
+  if (!champData) return;
+  var qChamps = champData.quarterChampions || [];
+  var pChamps = champData.playerChampionships || [];
+  var el = document.getElementById('tab-champions');
+  var html = '<div class="champ-section">';
+
+  // Group by quarter descending
+  var byQ = {};
+  qChamps.forEach(function(c) {
+    if (!byQ[c.quarter]) byQ[c.quarter] = [];
+    byQ[c.quarter].push(c);
+  });
+  var quarters = Object.keys(byQ).sort(function(a, b) { return b.localeCompare(a); });
+
+  html += '<div class="champ-title">🏆 Quarter Champions</div>';
+  if (!quarters.length) {
+    html += '<div class="empty-msg">No completed quarters yet.</div>';
+  } else {
+    html += '<div class="champ-grid">';
+    quarters.forEach(function(q) {
+      byQ[q].forEach(function(c) {
+        html += '<div class="champ-card">' +
+          '<div class="champ-card-header"><div class="champ-card-quarter">' + esc(q) + '</div>' +
+          '<div class="champ-card-cat">' + esc(c.category) + '</div></div>' +
+          '<div class="champ-card-body">' +
+          '<div class="champ-avatar">' + initFrom(c.champ) + '</div>' +
+          '<div class="champ-name">' + esc(c.champ) + '</div></div></div>';
+      });
+    });
+    html += '</div>';
+  }
+
+  // All-time count table
+  if (pChamps.length) {
+    html += '<div class="champ-title">👑 All-Time Championships</div>';
+    html += '<table class="champ-count-table"><thead><tr>' +
+      '<th>Player</th><th>Combined</th><th>Whit\'s Bounty</th><th>Total</th>' +
+      '</tr></thead><tbody>';
+    pChamps.forEach(function(p) {
+      html += '<tr><td>' + esc(p.player) + '</td>' +
+        '<td>' + (p.combined || 0) + '</td>' +
+        '<td>' + (p.wbo || 0) + '</td>' +
+        '<td>' + (p.total || 0) + '</td></tr>';
+    });
+    html += '</tbody></table>';
+  }
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+// ── CALENDAR ─────────────────────────────────────────────────
+function renderCalendar() {
+  var tours = primaryData.tournaments || [];
+  var el    = document.getElementById('calGrid');
+  if (!tours.length) {
+    el.innerHTML = '<div class="empty-msg">No upcoming tournaments found.</div>';
+    return;
+  }
+  var now  = new Date();
+  var html = '';
+  tours.forEach(function(t, i) {
+    var d     = new Date(t.start);
+    var isNext = i === 0;
+    var gc    = GAME_CONFIG[gameNameToKey(t.name)] || {};
+    var stCls = t.status === 'registering' ? 'registering' : 'announced';
+    html += '<div class="cal-card' + (isNext ? ' next-game' : '') + '">';
+    if (isNext) html += '<div class="cal-next-badge">NEXT GAME</div>';
+    html += '<div class="cal-name">' + esc(t.name) + '</div>';
+    html += '<div class="cal-date">' + fmtDate(d) + '<span class="cal-status ' + stCls + '">' + esc(t.status) + '</span></div>';
+    if (t.game) html += '<div class="cal-game">' + esc(t.game) + '</div>';
+    if (t.link) html += '<a class="cal-link" href="' + esc(t.link) + '" target="_blank">View Tournament</a>';
+    html += '</div>';
+  });
+  el.innerHTML = html;
+}
+
+// ── COPY ──────────────────────────────────────────────────────
+function copyData() {
+  var lg = primaryData && primaryData.latestGame;
+  if (!lg) { alert('No data to copy.'); return; }
+  var lines = ['Player Appreciation — ' + (lg.gameName || '') + ' — ' + (lg.date || ''), ''];
+  (lg.players || []).forEach(function(p, i) {
+    lines.push((i+1) + '. ' + p.player + ' — ' + Number(p.points||0).toLocaleString() + ' pts' + (p.chips > 0 ? ' (' + Number(p.chips).toLocaleString() + ' chips)' : ''));
+  });
+  copyToClipboard(lines.join('\n'), document.querySelector('.hdr-btn.copy-btn'));
+}
+
+function copyImage() {
+  var target = captureTargets[currentTab] || ('#tab-' + currentTab);
+  var el     = document.querySelector(target);
+  if (!el)   el = document.getElementById('tab-' + currentTab);
+  if (!el) { alert('Nothing to capture.'); return; }
+  var btn = document.querySelectorAll('.hdr-btn.copy-btn')[1];
+  btn.classList.add('spinning'); btn.textContent = '⏳ CAPTURING…';
+  html2canvas(el, { scale: 2, backgroundColor: '#060612', useCORS: true }).then(function(canvas) {
+    canvas.toBlob(function(blob) {
+      try {
+        navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(function() {
+          btn.classList.remove('spinning'); btn.textContent = '✓ COPIED!';
+          setTimeout(function() { btn.textContent = '📷 COPY IMAGE'; }, 2000);
+        });
+      } catch(e) {
+        btn.classList.remove('spinning'); btn.textContent = '📷 COPY IMAGE';
+        alert('Image copy not supported in this browser. Try Chrome.');
+      }
+    });
+  }).catch(function() {
+    btn.classList.remove('spinning'); btn.textContent = '📷 COPY IMAGE';
+  });
+}
+
+// ── HELPERS ───────────────────────────────────────────────────
+function populateQuarterSelect(id, quarters) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = quarters.map(function(q) {
+    return '<option value="' + esc(q) + '">' + esc(q) + '</option>';
+  }).join('');
+}
+
+function gameNameToKey(name) {
+  if (!name) return '';
+  var n = name.trim();
+  if (n === "Whit's Bounty Open")    return 'wbo';
+  if (n === 'LI Open NLHE Monthly')  return 'nlhe';
+  if (n === 'LI Open NLOHL Monthly') return 'nlohl';
+  if (n === 'Midnight Grind')        return 'mg';
+  if (n === 'Special Events')        return 'se';
+  return '';
+}
+
+function statCard(icon, label, val, sub) {
+  return '<div class="rsc"><div class="rsc-icon">' + icon + '</div>' +
+    '<div class="rsc-label">' + label + '</div>' +
+    '<div class="rsc-val">' + esc(String(val)) + '</div>' +
+    (sub ? '<div class="rsc-sub">' + esc(sub) + '</div>' : '') + '</div>';
+}
+
+function initFrom(name) {
+  if (!name) return '?';
+  var parts = String(name).trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
+  return String(name)[0].toUpperCase();
+}
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmtDate(d) {
+  if (!(d instanceof Date) || isNaN(d)) return String(d);
+  return d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' });
+}
+
+function fmtDatetime(iso) {
+  try { return new Date(iso).toLocaleString(); } catch(e) { return iso; }
+}
+
+function copyToClipboard(text, btn) {
+  navigator.clipboard.writeText(text).then(function() {
+    if (btn) { var orig = btn.textContent; btn.textContent = '✓ COPIED!'; btn.classList.add('flash'); setTimeout(function() { btn.textContent = orig; btn.classList.remove('flash'); }, 2000); }
+  }).catch(function() { alert('Copy failed. Try a modern browser.'); });
+}
+
+function setLoadMsg(msg) { var el = document.getElementById('loadingMsg'); if (el) el.textContent = msg; }
+
+function showError(msg) {
+  document.getElementById('loadingScreen').classList.add('hidden');
+  document.getElementById('errorMsg').textContent = msg;
+  document.getElementById('errorScreen').classList.add('visible');
+}
+
+// ── GITHUB PAGES SHIM ─────────────────────────────────────────
+// Routes google.script.run calls to the deployed web app URL when
+// running outside of Google Apps Script (e.g. GitHub Pages).
+if (typeof google === 'undefined' || !google.script) {
+  var _ep = { paGetPrimary:'data', paGetChampions:'champions', paBust:'bust' };
+  var google = {
+    script: {
+      run: new Proxy({}, {
+        get: function(t, fn) {
+          var state = {};
+          var h = {
+            get: function(tgt, prop) {
+              if (prop === 'withSuccessHandler' || prop === 'withFailureHandler') {
+                return function(cb) { state[prop] = cb; return new Proxy(function(){}, h); };
+              }
+              return tgt[prop];
+            },
+            apply: function(tgt, thisArg, args) {
+              var ep = _ep[fn];
+              if (!ep || !WEBAPP_URL) {
+                if (state.withFailureHandler) state.withFailureHandler({ message: 'WEBAPP_URL not set — edit the WEBAPP_URL variable in PAWebAppUI.html.' });
+                return;
+              }
+              fetch(WEBAPP_URL + '?get=' + ep)
+                .then(function(r) { return r.json(); })
+                .then(function(d) { if (state.withSuccessHandler) state.withSuccessHandler(d); })
+                .catch(function(e) { if (state.withFailureHandler) state.withFailureHandler(e); });
+            }
+          };
+          return new Proxy(function(){}, h);
+        }
+      })
+    }
+  };
+}
+</script>
+</body>
+</html>
